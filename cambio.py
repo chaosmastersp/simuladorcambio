@@ -232,11 +232,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
-# (Removido: linha de explicação do cálculo que ficava no rodapé do resultado)
-
-# Observações opcionais (mantidas, sem fórmulas)
-# Observações/Premissas (sempre visível)
 st.markdown(
     f"""
 <div style="
@@ -253,6 +248,7 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
 
 
 
