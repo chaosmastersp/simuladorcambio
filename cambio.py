@@ -1,6 +1,3 @@
-# streamlit_app.py
-# Simulador de Operação – Metalcred (Streamlit Cloud-ready)
-
 import streamlit as st
 
 # ----------------------------
@@ -60,7 +57,7 @@ def montante_por_dias(vp: float, i_dia: float, dias: int) -> float:
 # ----------------------------
 # Credenciais (Cloud: use Secrets se quiser)
 # ----------------------------
-APP_USER = st.secrets.get("APP_USER", "cambio.simulacao")
+APP_USER = st.secrets.get("APP_USER", "cambio")
 APP_PASS = st.secrets.get("APP_PASS", "metalcred")
 
 # ----------------------------
@@ -250,3 +247,4 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
