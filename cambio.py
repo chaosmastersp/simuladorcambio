@@ -220,13 +220,13 @@ st.markdown(
     padding: 12px;
     margin-top: 12px;
     background-color: #fafafa;">
-<b>📌 Observações/Premissas</b><br><br>
+<b>📌 AVISO IMPORTANTE</b><br><br>
 <ul>
-<li><b>AVISO IMPORTANTE</b></li>
 <li>Esta simulação possui caráter meramente ilustrativo. O valor exato somente poderá ser apurado na data da efetiva liquidação, ocasião em que será considerada a cotação vigente no dia.</li>
 </ul>
 </div>
     """,
     unsafe_allow_html=True,
 )
+
 
