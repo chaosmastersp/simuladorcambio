@@ -1,6 +1,5 @@
 # streamlit_app.py
 # Simulador de Operação – Metalcred (Streamlit Cloud-ready)
-# Executar localmente: streamlit run streamlit_app.py
 
 import streamlit as st
 
@@ -26,7 +25,7 @@ def br_number(value: float, decimals: int = 4) -> str:
     return s.replace(",", "X").replace(".", ",").replace("X", ".")
 
 def pct(frac: float, casas: int = 6) -> str:
-    """Formata fração (0.1234) como percentual BR."""
+    """Formata fração (0.001234) como percentual BR (0,123400%)."""
     s = f"{frac*100:,.{casas}f}%"
     return s.replace(",", "X").replace(".", ",").replace("X", ".")
 
@@ -61,23 +60,22 @@ def montante_por_dias(vp: float, i_dia: float, dias: int) -> float:
 # ----------------------------
 # Credenciais (Cloud: use Secrets se quiser)
 # ----------------------------
-APP_USER = st.secrets.get("APP_USER", "cambio")
+APP_USER = st.secrets.get("APP_USER", "cambio.simulacao")
 APP_PASS = st.secrets.get("APP_PASS", "metalcred")
 
 # ----------------------------
-# Estado da sessão (inicialização segura)
+# Estado da sessão (inicialização uma única vez)
 # ----------------------------
-st.session_state.setdefault("autenticado", False)
+if "autenticado" not in st.session_state:
+    st.session_state.autenticado = False
 
-# Defaults de inputs (carregados uma única vez)
-DEFAULTS = {
-    "cotacao": 5.0000,           # float
-    "taxa_aa_pct": 12.0000,      # float
-    "dias": 30,                  # int
-    "valor_usd_str": "10.000,00" # str (exibição BR)
-}
-for k, v in DEFAULTS.items():
-    st.session_state.setdefault(k, v)
+# Inicializa valores padrão somente na 1ª execução
+if "_inited" not in st.session_state:
+    st.session_state.cotacao = 5.0000             # float
+    st.session_state.taxa_aa_pct = 12.0000        # float em %
+    st.session_state.dias = 30                    # int
+    st.session_state.valor_usd_str = "10.000,00"  # str (exibição BR)
+    st.session_state._inited = True
 
 # ----------------------------
 # Cabeçalho
@@ -85,17 +83,17 @@ for k, v in DEFAULTS.items():
 st.title("💱 Simulador de Operação – Metalcred")
 
 # ----------------------------
-# Login
+# Login (campos vazios, sem placeholder)
 # ----------------------------
-if not st.session_state["autenticado"]:
+if not st.session_state.autenticado:
     with st.form("login_form", clear_on_submit=False):
         st.subheader("Acesso")
-        user = st.text_input("Usuário", placeholder="Usuário")
-        pwd = st.text_input("Senha", type="password", placeholder="Senha")
+        user = st.text_input("Usuário")
+        pwd = st.text_input("Senha", type="password")
         entrar = st.form_submit_button("Entrar")
     if entrar:
         if user == APP_USER and pwd == APP_PASS:
-            st.session_state["autenticado"] = True
+            st.session_state.autenticado = True
             st.success("Login realizado com sucesso.")
             st.rerun()
         else:
@@ -110,7 +108,7 @@ with st.sidebar:
     st.caption("Conectado como:")
     st.code(APP_USER, language="bash")
     if st.button("Sair"):
-        st.session_state["autenticado"] = False
+        st.session_state.autenticado = False
         st.rerun()
 
 # ======== Destaque visual do bloco de parâmetros ========
@@ -128,55 +126,49 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ======== Formulário de parâmetros ========
+# ======== Formulário de parâmetros (sem 'value=', mantém estado) ========
 col1, col2 = st.columns(2)
 with col1:
-    cotacao = st.number_input(
+    st.number_input(
         "Cotação do dólar (BRL/USD)",
         min_value=0.0001,
-        value=float(st.session_state["cotacao"]),
         step=0.0100,
         format="%.4f",
         help="Valor em reais por 1 dólar.",
         key="cotacao",
     )
-    taxa_aa_pct = st.number_input(
+    st.number_input(
         "Taxa de juros ao ano (%)",
         min_value=0.0,
-        value=float(st.session_state["taxa_aa_pct"]),
         step=0.1000,
         format="%.4f",
         help="Taxa efetiva ao ano.",
         key="taxa_aa_pct",
     )
 with col2:
-    dias = st.number_input(
+    st.number_input(
         "Quantidade de dias da operação",
         min_value=0,
-        value=int(st.session_state["dias"]),
         step=1,
         help="Número inteiro de dias corridos.",
         key="dias",
     )
     # Campo em texto (para exibir 10.000,00)
-    valor_usd_str = st.text_input(
+    st.text_input(
         "Valor da operação (USD)",
-        value=st.session_state["valor_usd_str"],
         help="Use o padrão BR: 10.000,00",
-        key="valor_usd_str",
         placeholder="10.000,00",
+        key="valor_usd_str",
     )
 
 # ======== Ação: Calcular ========
 base_dias = 365
-calcular = st.button("Calcular VALOR FINAL", type="primary")
-
-if calcular:
+if st.button("Calcular VALOR FINAL", type="primary"):
     erros = []
-    cotacao_v = float(st.session_state["cotacao"])
-    taxa_aa_pct_v = float(st.session_state["taxa_aa_pct"])
-    dias_v = int(st.session_state["dias"])
-    valor_usd_v = parse_br_number(st.session_state["valor_usd_str"])
+    cotacao_v = float(st.session_state.cotacao)
+    taxa_aa_pct_v = float(st.session_state.taxa_aa_pct)
+    dias_v = int(st.session_state.dias)
+    valor_usd_v = parse_br_number(st.session_state.valor_usd_str)
 
     if cotacao_v <= 0:
         erros.append("A cotação deve ser maior que zero.")
@@ -196,42 +188,50 @@ if calcular:
         montante_usd = montante_por_dias(valor_usd_v, i_dia, dias_v)
         valor_final_brl = montante_usd * cotacao_v
 
-st.divider()
-st.markdown("### Resultado")
+        st.divider()
+        st.markdown("### Resultado")
 
-c1, c2, c3 = st.columns(3)
-with c1:
-    st.markdown(f"<div style='font-size:0.9rem;color:#555;'>Taxa diária (efetiva)</div>"
+        # Métricas menores/discretas
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown(
+                f"<div style='font-size:0.9rem;color:#555;'>Taxa diária (efetiva)</div>"
                 f"<div style='font-size:1.1rem;font-weight:600;'>{pct(i_dia, 6)}</div>",
-                unsafe_allow_html=True)
-with c2:
-    st.markdown(f"<div style='font-size:0.9rem;color:#555;'>Montante (USD)</div>"
+                unsafe_allow_html=True,
+            )
+        with c2:
+            st.markdown(
+                f"<div style='font-size:0.9rem;color:#555;'>Montante (USD)</div>"
                 f"<div style='font-size:1.1rem;font-weight:600;'>{br_money(montante_usd)}</div>",
-                unsafe_allow_html=True)
-with c3:
-    st.markdown(f"<div style='font-size:0.9rem;color:#555;'>Cotação aplicada (BRL/USD)</div>"
+                unsafe_allow_html=True,
+            )
+        with c3:
+            st.markdown(
+                f"<div style='font-size:0.9rem;color:#555;'>Cotação aplicada (BRL/USD)</div>"
                 f"<div style='font-size:1.1rem;font-weight:600;'>{br_number(cotacao_v, 4)}</div>",
-                unsafe_allow_html=True)
+                unsafe_allow_html=True,
+            )
 
-# Destaque principal: VALOR FINAL
-st.markdown(
-    f"""
-    <div style="
-        background-color:#e8f9f0;
-        border-left:6px solid #00a091;
-        padding:14px;
-        margin-top:12px;
-        border-radius:8px;
-        text-align:center;">
-        <div style="font-size:1rem;color:#004b3f;font-weight:600;">VALOR FINAL (em BRL)</div>
-        <div style="font-size:2rem;color:#003641;font-weight:700;margin-top:6px;">
-            {br_money_with_symbol(valor_final_brl)}
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+        # Destaque principal: VALOR FINAL (BRL)
+        st.markdown(
+            f"""
+            <div style="
+                background-color:#e8f9f0;
+                border-left:6px solid #00a091;
+                padding:14px;
+                margin-top:12px;
+                border-radius:8px;
+                text-align:center;">
+                <div style="font-size:1rem;color:#004b3f;font-weight:600;">VALOR FINAL (em BRL)</div>
+                <div style="font-size:2rem;color:#003641;font-weight:700;margin-top:6px;">
+                    {br_money_with_symbol(valor_final_brl)}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
+# Observações/Premissas (sempre visível)
 st.markdown(
     f"""
 <div style="
@@ -240,15 +240,13 @@ st.markdown(
     padding: 12px;
     margin-top: 12px;
     background-color: #fafafa;">
-<b>📌 AVISO IMPORTANTE</b><br><br>
+<b>📌 Observações/Premissas</b><br><br>
 <ul>
-<li>Esta simulação possui caráter meramente ilustrativo. O valor exato somente poderá ser apurado na data da efetiva liquidação, ocasião em que será considerada a cotação vigente no dia.</li>
+<li>Base de <b>{base_dias} dias corridos</b> para equivalência anual → diária.</li>
+<li>A taxa informada é <b>efetiva anual</b>.</li>
+<li>O valor de entrada é em <b>USD</b> (aceita formato BR: 10.000,00); o <b>VALOR FINAL</b> é convertido para <b>BRL</b> pela cotação informada.</li>
 </ul>
 </div>
     """,
     unsafe_allow_html=True,
 )
-
-
-
-
