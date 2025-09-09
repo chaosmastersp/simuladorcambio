@@ -1,3 +1,7 @@
+# streamlit_app.py
+# Simulador de Operação – Metalcred (Streamlit Cloud-ready, parser BR/US de números)
+
+import re
 import streamlit as st
 
 # ----------------------------
@@ -6,10 +10,9 @@ import streamlit as st
 st.set_page_config(page_title="Simulador - Metalcred", page_icon="💱", layout="centered")
 
 # ----------------------------
-# Helpers de formatação / parsing
+# Helpers de formatação
 # ----------------------------
 def br_money(value: float) -> str:
-    """Formata número em padrão BR: 1.234.567,89 (sem símbolo)."""
     s = f"{value:,.2f}"
     return s.replace(",", "X").replace(".", ",").replace("X", ".")
 
@@ -17,61 +20,103 @@ def br_money_with_symbol(value: float) -> str:
     return "R$ " + br_money(value)
 
 def br_number(value: float, decimals: int = 4) -> str:
-    """Formata número com N casas decimais no padrão BR (sem símbolo)."""
     s = f"{value:,.{decimals}f}"
     return s.replace(",", "X").replace(".", ",").replace("X", ".")
 
 def pct(frac: float, casas: int = 6) -> str:
-    """Formata fração (0.001234) como percentual BR (0,123400%)."""
     s = f"{frac*100:,.{casas}f}%"
     return s.replace(",", "X").replace(".", ",").replace("X", ".")
 
-def parse_br_number(texto: str) -> float:
+def parse_number_flex(texto: str) -> float:
     """
-    Converte string no padrão BR para float.
-    Aceita: '10.000,00', '10000,00', '10000.00' ou '10000'.
+    Converte string para float aceitando:
+    - BR: '50.000', '50.000,75', '50000,75'
+    - US: '50,000', '50,000.75', '50000.75'
+    Regras:
+      * Se existir vírgula e ponto, o separador decimal é o que aparece por último.
+      * Se existir apenas vírgula ou apenas ponto:
+          - se for padrão de milhares (grupos de 3), trata como milhar (remove)
+          - senão, trata como decimal.
     """
     if texto is None:
         return 0.0
-    txt = str(texto).strip()
-    if txt == "":
+    s = str(texto).strip()
+    if s == "":
         return 0.0
-    if "," in txt:
-        txt = txt.replace(".", "").replace(",", ".")
+
+    # mantém apenas dígitos e separadores
+    s = re.sub(r"[^\d,\.]", "", s)
+
+    has_comma = "," in s
+    has_dot = "." in s
+
     try:
-        return float(txt)
-    except Exception:
+        if has_comma and has_dot:
+            # decimal = último separador que aparece
+            last_comma = s.rfind(",")
+            last_dot = s.rfind(".")
+            if last_comma > last_dot:
+                decimal_sep = ","
+                thousands_sep = "."
+            else:
+                decimal_sep = "."
+                thousands_sep = ","
+            s = s.replace(thousands_sep, "")
+            s = s.replace(decimal_sep, ".")
+            return float(s)
+
+        elif has_comma:
+            # apenas vírgula presente
+            # se estiver no padrão de milhares: 1,234 ou 12,345,678
+            if re.fullmatch(r"\d{1,3}(,\d{3})+", s):
+                return float(s.replace(",", ""))
+            # senão, assume vírgula decimal (BR)
+            s = s.replace(".", "")   # pontos que sobraram = milhares
+            s = s.replace(",", ".")  # vírgula decimal
+            return float(s)
+
+        elif has_dot:
+            # apenas ponto presente
+            # padrão de milhares BR: 1.234 ou 12.345.678
+            if re.fullmatch(r"\d{1,3}(\.\d{3})+", s):
+                return float(s.replace(".", ""))
+            # senão, assume ponto decimal (US)
+            return float(s)
+
+        else:
+            # só dígitos
+            return float(s)
+
+    except ValueError:
+        # fallback seguro
         return 0.0
 
 # ----------------------------
 # Cálculos financeiros
 # ----------------------------
 def taxa_anual_para_diaria(i_anual: float, base_dias: int = 365) -> float:
-    """Converte taxa efetiva anual para efetiva diária: i_dia = (1 + i_anual) ** (1/base_dias) - 1"""
     return (1.0 + i_anual) ** (1.0 / base_dias) - 1.0
 
 def montante_por_dias(vp: float, i_dia: float, dias: int) -> float:
-    """Montante com capitalização diária: M = VP * (1 + i_dia) ** dias"""
     return vp * ((1.0 + i_dia) ** dias)
 
 # ----------------------------
 # Credenciais (Cloud: use Secrets se quiser)
 # ----------------------------
-APP_USER = st.secrets.get("APP_USER", "cambio")
+APP_USER = st.secrets.get("APP_USER", "cambio.simulacao")
 APP_PASS = st.secrets.get("APP_PASS", "metalcred")
 
 # ----------------------------
-# Estado da sessão (inicialização uma única vez)
+# Estado (inicialização única)
 # ----------------------------
 if "autenticado" not in st.session_state:
     st.session_state.autenticado = False
 
-# Inicializa valores padrão somente na 1ª execução
 if "_inited" not in st.session_state:
-    st.session_state.cotacao = 5.0000             # float
-    st.session_state.taxa_aa_pct = 12.0000        # float em %
-    st.session_state.dias = 30                    # int
-    st.session_state.valor_usd_str = "10.000,00"  # str (exibição BR)
+    st.session_state.cotacao = 5.0000
+    st.session_state.taxa_aa_pct = 12.0000
+    st.session_state.dias = 30
+    st.session_state.valor_usd_str = "10.000,00"  # exibido em BR
     st.session_state._inited = True
 
 # ----------------------------
@@ -80,7 +125,7 @@ if "_inited" not in st.session_state:
 st.title("💱 Simulador de Operação – Metalcred")
 
 # ----------------------------
-# Login (campos vazios, sem placeholder)
+# Login
 # ----------------------------
 if not st.session_state.autenticado:
     with st.form("login_form", clear_on_submit=False):
@@ -108,7 +153,7 @@ with st.sidebar:
         st.session_state.autenticado = False
         st.rerun()
 
-# ======== Destaque visual do bloco de parâmetros ========
+# ======== Destaque visual ========
 st.markdown(
     """
     <div style="
@@ -123,7 +168,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ======== Formulário de parâmetros (sem 'value=', mantém estado) ========
+# ======== Formulário (mantém estado; sem 'value=') ========
 col1, col2 = st.columns(2)
 with col1:
     st.number_input(
@@ -150,22 +195,21 @@ with col2:
         help="Número inteiro de dias corridos.",
         key="dias",
     )
-    # Campo em texto (para exibir 10.000,00)
     st.text_input(
         "Valor da operação (USD)",
-        help="Use o padrão BR: 10.000,00",
+        help="Aceita: 50.000, 50.000,00, 50000,00, 50,000.00 ou 50000.00",
         placeholder="10.000,00",
         key="valor_usd_str",
     )
 
-# ======== Ação: Calcular ========
+# ======== Calcular ========
 base_dias = 365
 if st.button("Calcular VALOR FINAL", type="primary"):
     erros = []
     cotacao_v = float(st.session_state.cotacao)
     taxa_aa_pct_v = float(st.session_state.taxa_aa_pct)
     dias_v = int(st.session_state.dias)
-    valor_usd_v = parse_br_number(st.session_state.valor_usd_str)
+    valor_usd_v = parse_number_flex(st.session_state.valor_usd_str)
 
     if cotacao_v <= 0:
         erros.append("A cotação deve ser maior que zero.")
@@ -174,7 +218,7 @@ if st.button("Calcular VALOR FINAL", type="primary"):
     if dias_v < 0:
         erros.append("A quantidade de dias não pode ser negativa.")
     if valor_usd_v <= 0:
-        erros.append("O valor da operação (USD) deve ser maior que zero (ex.: 10.000,00).")
+        erros.append("O valor da operação (USD) deve ser maior que zero.")
 
     if erros:
         for e in erros:
@@ -188,7 +232,6 @@ if st.button("Calcular VALOR FINAL", type="primary"):
         st.divider()
         st.markdown("### Resultado")
 
-        # Métricas menores/discretas
         c1, c2, c3 = st.columns(3)
         with c1:
             st.markdown(
@@ -209,7 +252,6 @@ if st.button("Calcular VALOR FINAL", type="primary"):
                 unsafe_allow_html=True,
             )
 
-        # Destaque principal: VALOR FINAL (BRL)
         st.markdown(
             f"""
             <div style="
@@ -241,7 +283,7 @@ st.markdown(
 <ul>
 <li>Base de <b>{base_dias} dias corridos</b> para equivalência anual → diária.</li>
 <li>A taxa informada é <b>efetiva anual</b>.</li>
-<li>O valor de entrada é em <b>USD</b> (aceita formato BR: 10.000,00); o <b>VALOR FINAL</b> é convertido para <b>BRL</b> pela cotação informada.</li>
+<li>O valor de entrada é em <b>USD</b> (aceita: 50.000, 50.000,00, 50000,00, 50,000.00 ou 50000.00); o <b>VALOR FINAL</b> é convertido para <b>BRL</b> pela cotação informada.</li>
 </ul>
 </div>
     """,
