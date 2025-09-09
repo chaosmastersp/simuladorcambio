@@ -1,6 +1,3 @@
-# streamlit_app.py
-# Simulador de Operação – Metalcred (Streamlit Cloud-ready, parser BR/US de números)
-
 import re
 import streamlit as st
 
@@ -103,7 +100,7 @@ def montante_por_dias(vp: float, i_dia: float, dias: int) -> float:
 # ----------------------------
 # Credenciais (Cloud: use Secrets se quiser)
 # ----------------------------
-APP_USER = st.secrets.get("APP_USER", "cambio.simulacao")
+APP_USER = st.secrets.get("APP_USER", "cambio")
 APP_PASS = st.secrets.get("APP_PASS", "metalcred")
 
 # ----------------------------
@@ -279,14 +276,13 @@ st.markdown(
     padding: 12px;
     margin-top: 12px;
     background-color: #fafafa;">
-<b>📌 Observações/Premissas</b><br><br>
+<b>📌 AVISO IMPORTANTE</b><br><br>
 <ul>
-<li>Base de <b>{base_dias} dias corridos</b> para equivalência anual → diária.</li>
-<li>A taxa informada é <b>efetiva anual</b>.</li>
-<li>O valor de entrada é em <b>USD</b> (aceita: 50.000, 50.000,00, 50000,00, 50,000.00 ou 50000.00); o <b>VALOR FINAL</b> é convertido para <b>BRL</b> pela cotação informada.</li>
+<li>Esta simulação possui caráter meramente ilustrativo. O valor exato somente poderá ser apurado na data da efetiva liquidação, ocasião em que será considerada a cotação vigente no dia.</li>
 </ul>
 </div>
     """,
     unsafe_allow_html=True,
 )
+
 
