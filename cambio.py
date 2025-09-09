@@ -196,17 +196,42 @@ if calcular:
         montante_usd = montante_por_dias(valor_usd_v, i_dia, dias_v)
         valor_final_brl = montante_usd * cotacao_v
 
-        st.divider()
-        st.subheader("Resultado")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.metric("Taxa diária (efetiva)", pct(i_dia, 6))
-        with c2:
-            st.metric("Montante (USD)", br_money(montante_usd))
-        with c3:
-            st.metric("Cotação aplicada (BRL/USD)", br_number(cotacao_v, 4))
+st.divider()
+st.markdown("### Resultado")
 
-        st.success(f"**VALOR FINAL (em BRL)**: {br_money_with_symbol(valor_final_brl)}")
+c1, c2, c3 = st.columns(3)
+with c1:
+    st.markdown(f"<div style='font-size:0.9rem;color:#555;'>Taxa diária (efetiva)</div>"
+                f"<div style='font-size:1.1rem;font-weight:600;'>{pct(i_dia, 6)}</div>",
+                unsafe_allow_html=True)
+with c2:
+    st.markdown(f"<div style='font-size:0.9rem;color:#555;'>Montante (USD)</div>"
+                f"<div style='font-size:1.1rem;font-weight:600;'>{br_money(montante_usd)}</div>",
+                unsafe_allow_html=True)
+with c3:
+    st.markdown(f"<div style='font-size:0.9rem;color:#555;'>Cotação aplicada (BRL/USD)</div>"
+                f"<div style='font-size:1.1rem;font-weight:600;'>{br_number(cotacao_v, 4)}</div>",
+                unsafe_allow_html=True)
+
+# Destaque principal: VALOR FINAL
+st.markdown(
+    f"""
+    <div style="
+        background-color:#e8f9f0;
+        border-left:6px solid #00a091;
+        padding:14px;
+        margin-top:12px;
+        border-radius:8px;
+        text-align:center;">
+        <div style="font-size:1rem;color:#004b3f;font-weight:600;">VALOR FINAL (em BRL)</div>
+        <div style="font-size:2rem;color:#003641;font-weight:700;margin-top:6px;">
+            {br_money_with_symbol(valor_final_brl)}
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 
 # (Removido: linha de explicação do cálculo que ficava no rodapé do resultado)
 
@@ -228,5 +253,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
 
 
