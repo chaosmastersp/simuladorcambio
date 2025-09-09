@@ -141,3 +141,78 @@ with col2:
         "Quantidade de dias da operação",
         min_value=0, value=int(st.session_state["dias"]),
         step=1, help="Número inteiro de dias corridos.",
+        key="dias",
+    )
+    # Campo em texto com máscara BR (permite exibir 10.000,00)
+    valor_usd_str = st.text_input(
+        "Valor da operação (USD)",
+        value=st.session_state["valor_usd_str"],
+        help="Use o padrão BR: 10.000,00",
+        key="valor_usd_str",
+        placeholder="10.000,00",
+    )
+
+# ======== AÇÕES (Calcular / Limpar) ========
+bcol1, bcol2 = st.columns([1, 1])
+calcular = bcol1.button("Calcular VALOR FINAL", type="primary")
+limpar = bcol2.button("Limpar parâmetros")
+
+if limpar:
+    # Reset de todos os campos para os defaults e refresh
+    for k, v in DEFAULTS.items():
+        st.session_state[k] = v
+    st.experimental_rerun()
+
+base_dias = 365
+
+if calcular:
+    erros = []
+    if cotacao <= 0:
+        erros.append("A cotação deve ser maior que zero.")
+    if taxa_aa_pct < 0:
+        erros.append("A taxa ao ano não pode ser negativa.")
+    if dias < 0:
+        erros.append("A quantidade de dias não pode ser negativa.")
+
+    valor_usd = parse_br_number(valor_usd_str)
+    if valor_usd <= 0:
+        erros.append("O valor da operação (USD) deve ser maior que zero (ex.: 10.000,00).")
+
+    if erros:
+        for e in erros:
+            st.error(e)
+        st.stop()
+
+    taxa_aa = taxa_aa_pct / 100.0
+    i_dia = taxa_anual_para_diaria(taxa_aa, base_dias=base_dias)
+    montante_usd = montante_por_dias(valor_usd, i_dia, dias)
+    valor_final_brl = montante_usd * cotacao
+
+    st.divider()
+    st.subheader("Resultado")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("Taxa diária (efetiva)", pct(i_dia, 6))
+    with c2:
+        st.metric("Montante (USD)", br_money(montante_usd))
+    with c3:
+        st.metric("Cotação aplicada (BRL/USD)", br_money(cotacao).replace("R$ ", ""))  # só formatação numérica
+
+    st.success(f"**VALOR FINAL (em BRL)**: {br_money_with_symbol(valor_final_brl)}")
+
+    st.caption(
+        f"Cálculo: i_dia = (1 + i_aa)^(1/{base_dias}) - 1; "
+        f"Montante = Valor × (1 + i_dia)^{dias}; "
+        f"Valor Final = Montante × Cotação."
+    )
+
+# Rodapé técnico
+with st.expander("Observações/Premissas"):
+    st.markdown(
+        f"""
+- Conversão **anual → diária** por equivalência: \\( i_{{dia}} = (1 + i_{{anual}})^{{1/{base_dias}}} - 1 \\).
+- **Base de {base_dias} dias corridos**; se preferir **252 dias úteis**, troque `base_dias = 365` por `base_dias = 252`.
+- A taxa informada é **efetiva anual**.
+- O **valor de entrada** é em **USD** no padrão BR (ex.: 10.000,00); o **VALOR FINAL** é convertido para **BRL**.
+        """
+    )
