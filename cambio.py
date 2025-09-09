@@ -211,12 +211,22 @@ if calcular:
 # (Removido: linha de explicação do cálculo que ficava no rodapé do resultado)
 
 # Observações opcionais (mantidas, sem fórmulas)
-with st.expander("Observações/Premissas"):
-    st.markdown(
-        f"""
-- Base de **{base_dias} dias corridos** para equivalência anual → diária.
-- A taxa informada é **efetiva anual**.
-- O valor de entrada é em **USD** (aceita formato BR: 10.000,00); o **VALOR FINAL** é convertido para **BRL** pela cotação informada.
-        """
-    )
+# Observações/Premissas (sempre visível)
+st.markdown(
+    f"""
+<div style="
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 12px;
+    background-color: #fafafa;">
+<b>📌 Observações/Premissas</b><br><br>
+<ul>
+<li><b>AVISO IMPORTANTE</b></li>
+<li>Esta simulação possui caráter meramente ilustrativo. O valor exato somente poderá ser apurado na data da efetiva liquidação, ocasião em que será considerada a cotação vigente no dia.</li>
+</ul>
+</div>
+    """,
+    unsafe_allow_html=True,
+)
 
