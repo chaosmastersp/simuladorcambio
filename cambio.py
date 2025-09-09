@@ -219,4 +219,3 @@ with st.expander("Observações/Premissas"):
 - O valor de entrada é em **USD** (aceita formato BR: 10.000,00); o **VALOR FINAL** é convertido para **BRL** pela cotação informada.
         """
     )
-
