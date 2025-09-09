@@ -61,7 +61,7 @@ def montante_por_dias(vp: float, i_dia: float, dias: int) -> float:
 # ----------------------------
 # Credenciais (Cloud: use Secrets se quiser)
 # ----------------------------
-APP_USER = st.secrets.get("APP_USER", "cambio.simulacao")
+APP_USER = st.secrets.get("APP_USER", "cambio")
 APP_PASS = st.secrets.get("APP_PASS", "metalcred")
 
 # ----------------------------
@@ -90,8 +90,8 @@ st.title("💱 Simulador de Operação – Metalcred")
 if not st.session_state["autenticado"]:
     with st.form("login_form", clear_on_submit=False):
         st.subheader("Acesso")
-        user = st.text_input("Usuário", placeholder="cambio.simulacao")
-        pwd = st.text_input("Senha", type="password", placeholder="metalcred")
+        user = st.text_input("Usuário", placeholder="Usuário")
+        pwd = st.text_input("Senha", type="password", placeholder="Senha")
         entrar = st.form_submit_button("Entrar")
     if entrar:
         if user == APP_USER and pwd == APP_PASS:
@@ -219,3 +219,4 @@ with st.expander("Observações/Premissas"):
 - O valor de entrada é em **USD** (aceita formato BR: 10.000,00); o **VALOR FINAL** é convertido para **BRL** pela cotação informada.
         """
     )
+
