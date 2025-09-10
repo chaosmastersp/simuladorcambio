@@ -268,8 +268,9 @@ if st.button("Calcular VALOR FINAL", type="primary"):
         )
 
 # Observações/Premissas (sempre visível)
+
 st.markdown(
-    f"""
+    """
 <div style="
     border: 1px solid #e0e0e0;
     border-radius: 8px;
@@ -278,13 +279,15 @@ st.markdown(
     background-color: #fafafa;">
 <b>📌 AVISO IMPORTANTE</b><br><br>
 <ul>
-<li>Esta simulação possui caráter meramente ilustrativo. O valor exato somente poderá ser apurado na data da efetiva liquidação, ocasião em que será considerada a cotação vigente no dia.</li>
-<li>Esta simulação não contempla cálculo de IOF.</li>
+    <li>Esta simulação possui caráter meramente ilustrativo. O valor exato somente poderá ser apurado na data da efetiva liquidação, ocasião em que será considerada a cotação vigente no dia.</li>
+    <li>Esta simulação não contempla cálculo de IOF.</li>
 </ul>
 </div>
     """,
     unsafe_allow_html=True,
 )
+
+
 
 
 
