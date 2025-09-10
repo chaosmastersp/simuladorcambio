@@ -279,10 +279,12 @@ st.markdown(
 <b>📌 AVISO IMPORTANTE</b><br><br>
 <ul>
 <li>Esta simulação possui caráter meramente ilustrativo. O valor exato somente poderá ser apurado na data da efetiva liquidação, ocasião em que será considerada a cotação vigente no dia.</li>
+<li>Esta simulação não contempla cálculo de IOF.</li>
 </ul>
 </div>
     """,
     unsafe_allow_html=True,
 )
+
 
 
